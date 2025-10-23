@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROC 曲線互動式說明</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .control-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .slider-container {
+            margin: 20px 0;
+        }
+        .slider-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .explanation {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .plot-container {
+            margin: 20px 0;
+        }
+        .legend-item {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ROC 曲線互動式說明</h1>
+        <p class="subtitle">理解切割點(Threshold)如何影響 FPR 和 TPR</p>
+        
+        <div class="control-panel">
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>切割點(Threshold)</span>
+                    <span id="threshold-value">0.00</span>
+                </div>
+                <input type="range" id="threshold" min="-4" max="4" step="0.1" value="0">
+            </div>
+            
+            <div class="metrics">
+                <div class="metric-card" style="border-left-color: #f44336;">
+                    <div class="metric-label">False Positive Rate (FPR)</div>
+                    <div class="metric-value" id="fpr-value">0.000</div>
+                    <small>偽陽性率 = FP / (FP + TN)</small>
+                </div>
+                <div class="metric-card" style="border-left-color: #4CAF50;">
+                    <div class="metric-label">True Positive Rate (TPR)</div>
+                    <div class="metric-value" id="tpr-value">0.000</div>
+                    <small>真陽性率(敏感度) = TP / (TP + FN)</small>
+                </div>
+                <div class="metric-card" style="border-left-color: #FF9800;">
+                    <div class="metric-label">Precision (精確度)</div>
+                    <div class="metric-value" id="precision-value">0.000</div>
+                    <small>TP / (TP + FP)</small>
+                </div>
+                <div class="metric-card" style="border-left-color: #9C27B0;">
+                    <div class="metric-label">Accuracy (準確度)</div>
+                    <div class="metric-value" id="accuracy-value">0.000</div>
+                    <small>(TP + TN) / 總數</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="plot-container">
+            <h3>常態分佈圖:陰性與陽性樣本的分數分佈</h3>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #2196F3;"></span>
+                <span>真陰性(True Negative)分佈</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #f44336;"></span>
+                <span>真陽性(True Positive)分佈</span>
+            </div>
+            <div id="distribution-plot"></div>
+        </div>
+
+        <div class="plot-container">
+            <h3>ROC 曲線(Receiver Operating Characteristic Curve)</h3>
+            <div id="roc-plot"></div>
+        </div>
+
+        <div class="explanation">
+            <h3>📊 關鍵概念說明</h3>
+            <p><strong>切割點變化的影響:</strong></p>
+            <ul>
+                <li><strong>切割點往左移(降低門檻)</strong>:更多樣本被預測為陽性
+                    <ul>
+                        <li>TPR ↑:更多真陽性被正確識別</li>
+                        <li>FPR ↑:但也會有更多假陽性(誤報)</li>
+                    </ul>
+                </li>
+                <li><strong>切割點往右移(提高門檻)</strong>:更少樣本被預測為陽性
+                    <ul>
+                        <li>TPR ↓:會錯過一些真陽性</li>
+                        <li>FPR ↓:但假陽性也會減少</li>
+                    </ul>
+                </li>
+            </ul>
+            <p><strong>ROC 曲線解讀:</strong></p>
+            <ul>
+                <li>ROC 曲線顯示在所有可能的切割點下,TPR 與 FPR 的關係</li>
+                <li>曲線越靠近左上角(TPR 高、FPR 低),模型效能越好</li>
+                <li>對角線代表隨機猜測的效果(AUC = 0.5)</li>
+                <li>AUC(曲線下面積)越接近 1,模型判別能力越強</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 常態分佈的機率密度函數
+        function normalPDF(x, mean, std) {
+            const coefficient = 1 / (std * Math.sqrt(2 * Math.PI));
+            const exponent = -Math.pow(x - mean, 2) / (2 * Math.pow(std, 2));
+            return coefficient * Math.exp(exponent);
+        }
+
+        // 常態分佈的累積分佈函數(使用誤差函數近似)
+        function normalCDF(x, mean, std) {
+            const z = (x - mean) / std;
+            return 0.5 * (1 + erf(z / Math.sqrt(2)));
+        }
+
+        // 誤差函數近似
+        function erf(x) {
+            const sign = x >= 0 ? 1 : -1;
+            x = Math.abs(x);
+            const a1 = 0.254829592;
+            const a2 = -0.284496736;
+            const a3 = 1.421413741;
+            const a4 = -1.453152027;
+            const a5 = 1.061405429;
+            const p = 0.3275911;
+            const t = 1 / (1 + p * x);
+            const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return sign * y;
+        }
+
+        // 設定參數
+        const negMean = -1;  // 陰性樣本的平均值
+        const posMean = 1.5;   // 陽性樣本的平均值
+        const std = 1;       // 標準差
+
+        // 生成 x 軸數據
+        const xRange = [];
+        for (let x = -5; x <= 6; x += 0.05) {
+            xRange.push(x);
+        }
+
+        // 計算 TPR 和 FPR
+        function calculateMetrics(threshold) {
+            // TPR = P(預測為陽性 | 真實為陽性) = P(X > threshold | X ~ N(posMean, std))
+            const tpr = 1 - normalCDF(threshold, posMean, std);
+            
+            // FPR = P(預測為陽性 | 真實為陰性) = P(X > threshold | X ~ N(negMean, std))
+            const fpr = 1 - normalCDF(threshold, negMean, std);
+            
+            // TNR = P(預測為陰性 | 真實為陰性)
+            const tnr = normalCDF(threshold, negMean, std);
+            
+            // FNR = P(預測為陰性 | 真實為陽性)
+            const fnr = normalCDF(threshold, posMean, std);
+            
+            // 假設陽性和陰性樣本數量相等
+            const precision = tpr / (tpr + fpr) || 0;
+            const accuracy = (tpr + tnr) / 2;
+            
+            return { tpr, fpr, tnr, fnr, precision, accuracy };
+        }
+
+        // 生成完整的 ROC 曲線數據
+        function generateROCCurve() {
+            const thresholds = [];
+            const tprValues = [];
+            const fprValues = [];
+            
+            for (let t = -5; t <= 6; t += 0.1) {
+                thresholds.push(t);
+                const metrics = calculateMetrics(t);
+                tprValues.push(metrics.tpr);
+                fprValues.push(metrics.fpr);
+            }
+            
+            return { thresholds, tprValues, fprValues };
+        }
+
+        // 更新圖表
+        function updatePlots() {
+            const threshold = parseFloat(document.getElementById('threshold').value);
+            document.getElementById('threshold-value').textContent = threshold.toFixed(2);
+            
+            const metrics = calculateMetrics(threshold);
+            document.getElementById('fpr-value').textContent = metrics.fpr.toFixed(3);
+            document.getElementById('tpr-value').textContent = metrics.tpr.toFixed(3);
+            document.getElementById('precision-value').textContent = metrics.precision.toFixed(3);
+            document.getElementById('accuracy-value').textContent = metrics.accuracy.toFixed(3);
+            
+            // 更新分佈圖
+            updateDistributionPlot(threshold);
+            
+            // 更新 ROC 曲線
+            updateROCPlot(metrics.fpr, metrics.tpr);
+        }
+
+        // 更新分佈圖
+        function updateDistributionPlot(threshold) {
+            const negDist = xRange.map(x => normalPDF(x, negMean, std));
+            const posDist = xRange.map(x => normalPDF(x, posMean, std));
+            
+            const maxY = Math.max(...negDist, ...posDist);
+            
+            // 陰性分佈 - 完整曲線
+            const traceNeg = {
+                x: xRange,
+                y: negDist,
+                type: 'scatter',
+                mode: 'lines',
+                name: '陰性樣本分佈 (TN + FP)',
+                line: { color: '#2196F3', width: 3 },
+                showlegend: true
+            };
+            
+            // 陽性分佈 - 完整曲線
+            const tracePos = {
+                x: xRange,
+                y: posDist,
+                type: 'scatter',
+                mode: 'lines',
+                name: '陽性樣本分佈 (TP + FN)',
+                line: { color: '#f44336', width: 3 },
+                showlegend: true
+            };
+            
+            // TN 區域(陰性分佈中切割點左側 - 正確預測為陰性)
+            const tnX = xRange.filter(x => x < threshold);
+            const tnY = tnX.map(x => normalPDF(x, negMean, std));
+            const traceTN = {
+                x: tnX,
+                y: tnY,
+                type: 'scatter',
+                mode: 'none',
+                name: 'TN 區域(真陰性)',
+                fill: 'tozeroy',
+                fillcolor: 'rgba(33, 150, 243, 0.3)',
+                showlegend: true
+            };
+            
+            // FP 區域(陰性分佈中切割點右側 - 錯誤預測為陽性)
+            const fpX = xRange.filter(x => x >= threshold);
+            const fpY = fpX.map(x => normalPDF(x, negMean, std));
+            const traceFP = {
+                x: fpX,
+                y: fpY,
+                type: 'scatter',
+                mode: 'none',
+                name: 'FP 區域(偽陽性) → FPR',
+                fill: 'tozeroy',
+                fillcolor: 'rgba(255, 152, 0, 0.5)',
+                showlegend: true
+            };
+            
+            // FN 區域(陽性分佈中切割點左側 - 錯誤預測為陰性)
+            const fnX = xRange.filter(x => x < threshold);
+            const fnY = fnX.map(x => normalPDF(x, posMean, std));
+            const traceFN = {
+                x: fnX,
+                y: fnY,
+                type: 'scatter',
+                mode: 'none',
+                name: 'FN 區域(偽陰性)',
+                fill: 'tozeroy',
+                fillcolor: 'rgba(156, 39, 176, 0.3)',
+                showlegend: true
+            };
+            
+            // TP 區域(陽性分佈中切割點右側 - 正確預測為陽性)
+            const tpX = xRange.filter(x => x >= threshold);
+            const tpY = tpX.map(x => normalPDF(x, posMean, std));
+            const traceTP = {
+                x: tpX,
+                y: tpY,
+                type: 'scatter',
+                mode: 'none',
+                name: 'TP 區域(真陽性) → TPR',
+                fill: 'tozeroy',
+                fillcolor: 'rgba(76, 175, 80, 0.5)',
+                showlegend: true
+            };
+            
+            // 切割線
+            const thresholdLine = {
+                x: [threshold, threshold],
+                y: [0, maxY * 1.1],
+                type: 'scatter',
+                mode: 'lines',
+                name: `切割點 = ${threshold.toFixed(2)}`,
+                line: { color: '#000', width: 3, dash: 'dash' },
+                showlegend: true
+            };
+            
+            const layout = {
+                title: {
+                    text: '常態分佈:陰性與陽性樣本的分數分佈',
+                    font: { size: 16, weight: 'bold' }
+                },
+                xaxis: { 
+                    title: '預測分數(模型輸出值)', 
+                    gridcolor: '#e0e0e0',
+                    zeroline: true
+                },
+                yaxis: { 
+                    title: '機率密度', 
+                    gridcolor: '#e0e0e0' 
+                },
+                showlegend: true,
+                legend: { 
+                    x: 0.02, 
+                    y: 0.98,
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    bordercolor: '#ccc',
+                    borderwidth: 1
+                },
+                plot_bgcolor: '#fafafa',
+                paper_bgcolor: 'white',
+                hovermode: 'closest',
+                height: 500
+            };
+            
+            Plotly.newPlot('distribution-plot', 
+                [traceTN, traceFP, traceFN, traceTP, traceNeg, tracePos, thresholdLine], 
+                layout, 
+                {responsive: true}
+            );
+        }
+
+        // 更新 ROC 曲線
+        function updateROCPlot(currentFPR, currentTPR) {
+            const rocData = generateROCCurve();
+            
+            // ROC 曲線
+            const traceROC = {
+                x: rocData.fprValues,
+                y: rocData.tprValues,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ROC 曲線',
+                line: { color: '#4CAF50', width: 3 }
+            };
+            
+            // 對角線(隨機猜測)
+            const traceDiagonal = {
+                x: [0, 1],
+                y: [0, 1],
+                type: 'scatter',
+                mode: 'lines',
+                name: '隨機猜測',
+                line: { color: '#999', width: 2, dash: 'dash' }
+            };
+            
+            // 當前點
+            const traceCurrent = {
+                x: [currentFPR],
+                y: [currentTPR],
+                type: 'scatter',
+                mode: 'markers',
+                name: '當前切割點',
+                marker: { color: '#FF9800', size: 15, symbol: 'circle' }
+            };
+            
+            // 計算 AUC(使用梯形法則)
+            let auc = 0;
+            for (let i = 0; i < rocData.fprValues.length - 1; i++) {
+                const width = rocData.fprValues[i + 1] - rocData.fprValues[i];
+                const avgHeight = (rocData.tprValues[i] + rocData.tprValues[i + 1]) / 2;
+                auc += width * avgHeight;
+            }
+            
+            const layout = {
+                title: `ROC 曲線 (AUC = ${Math.abs(auc).toFixed(3)})`,
+                xaxis: { 
+                    title: 'False Positive Rate (FPR)',
+                    range: [0, 1],
+                    gridcolor: '#e0e0e0'
+                },
+                yaxis: { 
+                    title: 'True Positive Rate (TPR)',
+                    range: [0, 1],
+                    gridcolor: '#e0e0e0'
+                },
+                showlegend: true,
+                legend: { x: 0.6, y: 0.1 },
+                plot_bgcolor: '#fafafa',
+                paper_bgcolor: 'white',
+                hovermode: 'closest'
+            };
+            
+            Plotly.newPlot('roc-plot', [traceROC, traceDiagonal, traceCurrent], layout, {responsive: true});
+        }
+
+        // 監聽滑桿變化
+        document.getElementById('threshold').addEventListener('input', updatePlots);
+
+        // 初始化
+        updatePlots();
+    </script>
+</body>
+</html>
