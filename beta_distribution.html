@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beta 分佈視覺化</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .control-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .slider-container {
+            margin: 20px 0;
+        }
+        .slider-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .explanation {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .example-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+        .example-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Beta 分佈互動式說明</h1>
+        <p class="subtitle">理解 Beta(α, β) 如何描述機率的分佈</p>
+        
+        <div class="control-panel">
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>參數 α (Alpha)</span>
+                    <span id="alpha-value">2.0</span>
+                </div>
+                <input type="range" id="alpha" min="0.1" max="10" step="0.1" value="2">
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>參數 β (Beta)</span>
+                    <span id="beta-value">2.0</span>
+                </div>
+                <input type="range" id="beta" min="0.1" max="10" step="0.1" value="2">
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left-color: #4CAF50;">
+                    <div class="stat-label">期望值 E[θ]</div>
+                    <div class="stat-value" id="mean-value">0.500</div>
+                    <small>= α / (α + β)</small>
+                </div>
+                <div class="stat-card" style="border-left-color: #2196F3;">
+                    <div class="stat-label">眾數 Mode</div>
+                    <div class="stat-value" id="mode-value">0.500</div>
+                    <small>= (α-1) / (α+β-2)</small>
+                </div>
+                <div class="stat-card" style="border-left-color: #FF9800;">
+                    <div class="stat-label">變異數 Var[θ]</div>
+                    <div class="stat-value" id="var-value">0.050</div>
+                    <small>αβ / [(α+β)²(α+β+1)]</small>
+                </div>
+                <div class="stat-card" style="border-left-color: #9C27B0;">
+                    <div class="stat-label">標準差 SD</div>
+                    <div class="stat-value" id="std-value">0.224</div>
+                    <small>√Var[θ]</small>
+                </div>
+            </div>
+        </div>
+
+        <div id="beta-plot"></div>
+
+        <div class="explanation">
+            <h3>📚 Beta 分佈的直覺理解</h3>
+            
+            <p><strong>參數的意義：</strong></p>
+            <ul>
+                <li><strong>α</strong>：可以想成「成功」的次數 + 1</li>
+                <li><strong>β</strong>：可以想成「失敗」的次數 + 1</li>
+            </ul>
+            
+            <p><strong>常見的 Beta 分佈形狀：</strong></p>
+            <div class="example-grid">
+                <div class="example-card">
+                    <div class="example-title">Beta(1, 1) = 均勻分佈</div>
+                    <p>完全無知，所有機率都同樣可能。</p>
+                    <p>📊 平坦的直線</p>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-title">Beta(2, 2) = 偏向中間</div>
+                    <p>相信機率接近 0.5（公平）。</p>
+                    <p>📊 中間高、兩邊低的鐘形</p>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-title">Beta(10, 2) = 偏向高機率</div>
+                    <p>相信成功機率較高。</p>
+                    <p>📊 右偏分佈</p>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-title">Beta(2, 10) = 偏向低機率</div>
+                    <p>相信成功機率較低。</p>
+                    <p>📊 左偏分佈</p>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-title">Beta(0.5, 0.5) = U 型</div>
+                    <p>相信極端值（0 或 1）。</p>
+                    <p>📊 兩端高、中間低</p>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-title">Beta(50, 50) = 尖峰</div>
+                    <p>非常確定機率是 0.5。</p>
+                    <p>📊 非常集中的尖峰</p>
+                </div>
+            </div>
+            
+            <p style="margin-top: 20px;"><strong>💡 為什麼 Beta(2,2) 適合當硬幣的先驗？</strong></p>
+            <ul>
+                <li>期望值 = 2/(2+2) = 0.5，表示我們相信硬幣是公平的</li>
+                <li>但變異數不為 0，表示我們保持開放態度</li>
+                <li>相當於「之前丟過 1 次正面、1 次反面」的經驗</li>
+                <li>不會太強勢（像 Beta(100,100)），也不會完全無知（像 Beta(1,1)）</li>
+            </ul>
+        </div>
+
+        <div class="explanation" style="background: #fff3e0; border-left-color: #FF9800; margin-top: 20px;">
+            <h3>🎯 在 MAP 估計中的應用</h3>
+            <p>假設我們丟硬幣 10 次，全部都是正面：</p>
+            
+            <p><strong>MLE（沒有先驗）：</strong></p>
+            <p>θ̂<sub>MLE</sub> = 10/10 = 1.0 <span style="color: red;">← 過度自信！</span></p>
+            
+            <p><strong>MAP（使用 Beta(2,2) 先驗）：</strong></p>
+            <p>θ̂<sub>MAP</sub> = (10+2-1)/(10+2+2-2) = 11/12 ≈ 0.917 <span style="color: green;">← 較合理！</span></p>
+            
+            <p>先驗分佈提供了「溫和的懷疑」，避免極端估計。</p>
+            
+            <p><strong>貝氏更新公式：</strong></p>
+            <p><code>後驗 = Beta(α + 成功次數, β + 失敗次數)</code></p>
+            <p>這就是為什麼 Beta 分佈是「共軛先驗」：後驗也是 Beta 分佈！</p>
+        </div>
+    </div>
+
+    <script>
+        // Gamma 函數近似（Stirling's approximation）
+        function gamma(z) {
+            if (z < 0.5) {
+                return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+            }
+            z -= 1;
+            const g = 7;
+            const C = [
+                0.99999999999980993,
+                676.5203681218851,
+                -1259.1392167224028,
+                771.32342877765313,
+                -176.61502916214059,
+                12.507343278686905,
+                -0.13857109526572012,
+                9.9843695780195716e-6,
+                1.5056327351493116e-7
+            ];
+            let x = C[0];
+            for (let i = 1; i < g + 2; i++) {
+                x += C[i] / (z + i);
+            }
+            const t = z + g + 0.5;
+            return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+        }
+
+        // Beta 分佈的 PDF
+        function betaPDF(x, alpha, beta) {
+            if (x <= 0 || x >= 1) return 0;
+            const B = (gamma(alpha) * gamma(beta)) / gamma(alpha + beta);
+            return Math.pow(x, alpha - 1) * Math.pow(1 - x, beta - 1) / B;
+        }
+
+        // 計算統計量
+        function calculateStats(alpha, beta) {
+            const mean = alpha / (alpha + beta);
+            const mode = alpha > 1 && beta > 1 ? (alpha - 1) / (alpha + beta - 2) : NaN;
+            const variance = (alpha * beta) / (Math.pow(alpha + beta, 2) * (alpha + beta + 1));
+            const std = Math.sqrt(variance);
+            
+            return { mean, mode, variance, std };
+        }
+
+        // 更新圖表
+        function updatePlot() {
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const beta = parseFloat(document.getElementById('beta').value);
+            
+            document.getElementById('alpha-value').textContent = alpha.toFixed(1);
+            document.getElementById('beta-value').textContent = beta.toFixed(1);
+            
+            const stats = calculateStats(alpha, beta);
+            document.getElementById('mean-value').textContent = stats.mean.toFixed(3);
+            document.getElementById('mode-value').textContent = isNaN(stats.mode) ? 'N/A' : stats.mode.toFixed(3);
+            document.getElementById('var-value').textContent = stats.variance.toFixed(3);
+            document.getElementById('std-value').textContent = stats.std.toFixed(3);
+            
+            // 生成數據
+            const xValues = [];
+            const yValues = [];
+            
+            for (let x = 0.001; x < 1; x += 0.005) {
+                xValues.push(x);
+                yValues.push(betaPDF(x, alpha, beta));
+            }
+            
+            // Beta 分佈曲線
+            const traceBeta = {
+                x: xValues,
+                y: yValues,
+                type: 'scatter',
+                mode: 'lines',
+                name: `Beta(${alpha.toFixed(1)}, ${beta.toFixed(1)})`,
+                line: { color: '#4CAF50', width: 3 },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(76, 175, 80, 0.2)'
+            };
+            
+            // 期望值線
+            const meanLine = {
+                x: [stats.mean, stats.mean],
+                y: [0, Math.max(...yValues)],
+                type: 'scatter',
+                mode: 'lines',
+                name: `期望值 = ${stats.mean.toFixed(3)}`,
+                line: { color: '#2196F3', width: 2, dash: 'dash' }
+            };
+            
+            // 眾數線
+            const traces = [traceBeta, meanLine];
+            if (!isNaN(stats.mode)) {
+                const modeLine = {
+                    x: [stats.mode, stats.mode],
+                    y: [0, Math.max(...yValues)],
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `眾數 = ${stats.mode.toFixed(3)}`,
+                    line: { color: '#FF9800', width: 2, dash: 'dot' }
+                };
+                traces.push(modeLine);
+            }
+            
+            const layout = {
+                title: {
+                    text: `Beta(α=${alpha.toFixed(1)}, β=${beta.toFixed(1)}) 機率密度函數`,
+                    font: { size: 18, weight: 'bold' }
+                },
+                xaxis: {
+                    title: 'θ (機率參數)',
+                    range: [0, 1],
+                    gridcolor: '#e0e0e0'
+                },
+                yaxis: {
+                    title: '機率密度',
+                    gridcolor: '#e0e0e0'
+                },
+                showlegend: true,
+                legend: {
+                    x: 0.7,
+                    y: 0.95,
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    bordercolor: '#ccc',
+                    borderwidth: 1
+                },
+                plot_bgcolor: '#fafafa',
+                paper_bgcolor: 'white',
+                hovermode: 'closest',
+                height: 500
+            };
+            
+            Plotly.newPlot('beta-plot', traces, layout, {responsive: true});
+        }
+
+        // 監聽滑桿變化
+        document.getElementById('alpha').addEventListener('input', updatePlot);
+        document.getElementById('beta').addEventListener('input', updatePlot);
+
+        // 初始化
+        updatePlot();
+    </script>
+</body>
+</html>
