@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoencoder vs VAE 視覺化比較</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', '微軟正黑體', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .model-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .model-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            background: white;
+            cursor: crosshair;
+            display: block;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .description {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+        
+        .description ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .description li {
+            margin-bottom: 5px;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+            min-width: 120px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .value-display {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-weight: 600;
+            color: #667eea;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .info-box h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 1024px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Autoencoder vs VAE 潛在空間比較</h1>
+        <p class="subtitle">點擊畫布來添加資料點，觀察兩種模型如何組織潛在空間</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>資料類別數量：</label>
+                <input type="range" id="numClasses" min="2" max="5" value="3" step="1">
+                <span class="value-display" id="numClassesValue">3</span>
+            </div>
+            <div class="control-group">
+                <label>VAE 變異數：</label>
+                <input type="range" id="vaeVariance" min="0.1" max="2" value="0.5" step="0.1">
+                <span class="value-display" id="vaeVarianceValue">0.5</span>
+            </div>
+            <div class="control-group">
+                <button id="generateBtn">🎲 生成隨機資料</button>
+                <button id="clearBtn">🗑️ 清除全部</button>
+                <button id="interpolateBtn">✨ 展示插值</button>
+            </div>
+        </div>
+        
+        <div class="comparison">
+            <div class="model-section">
+                <h2>🔵 Autoencoder（傳統自編碼器）</h2>
+                <canvas id="aeCanvas"></canvas>
+                <div class="description">
+                    <strong>特點：</strong>
+                    <ul>
+                        <li>每個輸入映射到<strong>一個確定的點</strong></li>
+                        <li>潛在空間可能有「空洞」或不連續區域</li>
+                        <li>相似資料會聚集，但分佈不規則</li>
+                        <li>❌ 在空白區域隨機採樣可能產生無意義輸出</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="model-section">
+                <h2>🟢 VAE（變分自編碼器）</h2>
+                <canvas id="vaeCanvas"></canvas>
+                <div class="description">
+                    <strong>特點：</strong>
+                    <ul>
+                        <li>每個輸入映射到<strong>一個機率分佈</strong>（圓圈表示標準差）</li>
+                        <li>潛在空間連續且平滑，接近標準常態分佈</li>
+                        <li>分佈之間會重疊，確保空間連續性</li>
+                        <li>✅ 可以在任何位置採樣並生成有效輸出</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>類別 1</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3498db;"></div>
+                <span>類別 2</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>類別 3</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f39c12;"></div>
+                <span>類別 4</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9b59b6;"></div>
+                <span>類別 5</span>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h3>💡 如何使用</h3>
+            <p><strong>點擊畫布：</strong>在兩個潛在空間中添加資料點（會自動分配到最近的類別）</p>
+            <p><strong>生成隨機資料：</strong>自動產生多個類別的資料點</p>
+            <p><strong>展示插值：</strong>在兩個點之間進行插值，觀察 VAE 的平滑性</p>
+            <p><strong>觀察差異：</strong>注意 VAE 的圓圈（代表不確定性）如何使潛在空間更加連續</p>
+        </div>
+    </div>
+
+    <script>
+        // 全域變數
+        const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
+        let numClasses = 3;
+        let vaeVariance = 0.5;
+        let aePoints = [];
+        let vaePoints = [];
+        let interpolationPoints = [];
+        
+        let aeCanvas, vaeCanvas, aeCtx, vaeCtx;
+        
+        // 初始化
+        function init() {
+            aeCanvas = document.getElementById('aeCanvas');
+            vaeCanvas = document.getElementById('vaeCanvas');
+            aeCtx = aeCanvas.getContext('2d');
+            vaeCtx = vaeCanvas.getContext('2d');
+            
+            resizeCanvas();
+            setupEventListeners();
+            
+            // 初始化時生成一些資料
+            setTimeout(generateRandomData, 300);
+        }
+        
+        // 設定畫布大小
+        function resizeCanvas() {
+            const container = aeCanvas.parentElement;
+            const width = container.offsetWidth - 40;
+            const height = 400;
+            
+            aeCanvas.width = width;
+            aeCanvas.height = height;
+            vaeCanvas.width = width;
+            vaeCanvas.height = height;
+            
+            redraw();
+        }
+        
+        // 設定事件監聽器
+        function setupEventListeners() {
+            // 滑桿事件
+            document.getElementById('numClasses').addEventListener('input', function(e) {
+                numClasses = parseInt(e.target.value);
+                document.getElementById('numClassesValue').textContent = numClasses;
+            });
+            
+            document.getElementById('vaeVariance').addEventListener('input', function(e) {
+                vaeVariance = parseFloat(e.target.value);
+                document.getElementById('vaeVarianceValue').textContent = vaeVariance.toFixed(1);
+                redraw();
+            });
+            
+            // 按鈕事件
+            document.getElementById('generateBtn').addEventListener('click', generateRandomData);
+            document.getElementById('clearBtn').addEventListener('click', clearAll);
+            document.getElementById('interpolateBtn').addEventListener('click', demonstrateInterpolation);
+            
+            // 畫布點擊事件
+            aeCanvas.addEventListener('click', function(e) {
+                const rect = aeCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                addPoint(x, y);
+            });
+            
+            vaeCanvas.addEventListener('click', function(e) {
+                const rect = vaeCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                addPoint(x, y);
+            });
+            
+            // 視窗大小調整
+            window.addEventListener('resize', resizeCanvas);
+        }
+        
+        // 添加點
+        function addPoint(x, y) {
+            const classId = Math.floor(Math.random() * numClasses);
+            
+            aePoints.push({ x: x, y: y, class: classId });
+            vaePoints.push({ x: x, y: y, class: classId, variance: vaeVariance });
+            
+            redraw();
+        }
+        
+        // 生成隨機資料
+        function generateRandomData() {
+            clearAll();
+            
+            for (let c = 0; c < numClasses; c++) {
+                const centerX = Math.random() * (aeCanvas.width - 100) + 50;
+                const centerY = Math.random() * (aeCanvas.height - 100) + 50;
+                const numPoints = Math.floor(Math.random() * 11) + 15;
+                
+                for (let i = 0; i < numPoints; i++) {
+                    const aeRadius = Math.random() * 40 + 10;
+                    const aeAngle = Math.random() * Math.PI * 2;
+                    const aeX = centerX + Math.cos(aeAngle) * aeRadius;
+                    const aeY = centerY + Math.sin(aeAngle) * aeRadius;
+                    
+                    aePoints.push({ x: aeX, y: aeY, class: c });
+                    
+                    const vaeRadius = Math.random() * 50 + 20;
+                    const vaeAngle = Math.random() * Math.PI * 2;
+                    const vaeX = centerX + Math.cos(vaeAngle) * vaeRadius;
+                    const vaeY = centerY + Math.sin(vaeAngle) * vaeRadius;
+                    
+                    vaePoints.push({ x: vaeX, y: vaeY, class: c, variance: vaeVariance });
+                }
+            }
+            
+            redraw();
+        }
+        
+        // 清除全部
+        function clearAll() {
+            aePoints = [];
+            vaePoints = [];
+            interpolationPoints = [];
+            redraw();
+        }
+        
+        // 展示插值
+        function demonstrateInterpolation() {
+            if (aePoints.length < 2) {
+                alert('請先添加至少兩個資料點！');
+                return;
+            }
+            
+            const idx1 = Math.floor(Math.random() * aePoints.length);
+            let idx2 = Math.floor(Math.random() * aePoints.length);
+            while (idx2 === idx1 && aePoints.length > 1) {
+                idx2 = Math.floor(Math.random() * aePoints.length);
+            }
+            
+            const p1 = aePoints[idx1];
+            const p2 = aePoints[idx2];
+            
+            interpolationPoints = [];
+            
+            for (let t = 0; t <= 1; t += 0.1) {
+                const x = p1.x + (p2.x - p1.x) * t;
+                const y = p1.y + (p2.y - p1.y) * t;
+                interpolationPoints.push({ x: x, y: y });
+            }
+            
+            redraw();
+            
+            setTimeout(function() {
+                interpolationPoints = [];
+                redraw();
+            }, 3000);
+        }
+        
+        // 重繪畫布
+        function redraw() {
+            aeCtx.clearRect(0, 0, aeCanvas.width, aeCanvas.height);
+            vaeCtx.clearRect(0, 0, vaeCanvas.width, vaeCanvas.height);
+            
+            drawGrid(aeCtx, aeCanvas.width, aeCanvas.height);
+            drawGrid(vaeCtx, vaeCanvas.width, vaeCanvas.height);
+            
+            // 繪製 AE 點
+            for (let i = 0; i < aePoints.length; i++) {
+                const point = aePoints[i];
+                aeCtx.fillStyle = colors[point.class];
+                aeCtx.beginPath();
+                aeCtx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+                aeCtx.fill();
+                aeCtx.strokeStyle = '#333';
+                aeCtx.lineWidth = 2;
+                aeCtx.stroke();
+            }
+            
+            // 繪製 VAE 點
+            for (let i = 0; i < vaePoints.length; i++) {
+                const point = vaePoints[i];
+                
+                vaeCtx.strokeStyle = colors[point.class];
+                vaeCtx.lineWidth = 2;
+                vaeCtx.globalAlpha = 0.3;
+                vaeCtx.beginPath();
+                vaeCtx.arc(point.x, point.y, point.variance * 30, 0, Math.PI * 2);
+                vaeCtx.stroke();
+                
+                vaeCtx.globalAlpha = 1;
+                vaeCtx.fillStyle = colors[point.class];
+                vaeCtx.beginPath();
+                vaeCtx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+                vaeCtx.fill();
+                vaeCtx.strokeStyle = '#333';
+                vaeCtx.lineWidth = 2;
+                vaeCtx.stroke();
+            }
+            
+            if (interpolationPoints.length > 0) {
+                drawInterpolation(aeCtx);
+                drawInterpolation(vaeCtx);
+            }
+        }
+        
+        // 繪製網格
+        function drawGrid(ctx, width, height) {
+            ctx.strokeStyle = '#ecf0f1';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x < width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+        
+        // 繪製插值
+        function drawInterpolation(ctx) {
+            ctx.strokeStyle = '#e91e63';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            
+            ctx.beginPath();
+            ctx.moveTo(interpolationPoints[0].x, interpolationPoints[0].y);
+            
+            for (let i = 1; i < interpolationPoints.length; i++) {
+                ctx.lineTo(interpolationPoints[i].x, interpolationPoints[i].y);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            for (let i = 0; i < interpolationPoints.length; i++) {
+                const point = interpolationPoints[i];
+                if (i === 0 || i === interpolationPoints.length - 1) {
+                    ctx.fillStyle = '#e91e63';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#ffc107';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // 頁面載入完成後初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

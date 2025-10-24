@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encoder-Decoder vs Autoencoder vs VAE 架構比較</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', '微軟正黑體', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .architecture-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .architecture-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 250px;
+            border-radius: 10px;
+            background: white;
+            display: block;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .description {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            line-height: 1.8;
+        }
+        
+        .description ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .description li {
+            margin-bottom: 8px;
+        }
+        
+        .key-point {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-weight: 600;
+            color: #1565c0;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .legend-box {
+            width: 30px;
+            height: 20px;
+            border-radius: 3px;
+            border: 2px solid #333;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            canvas {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ 三種架構流程比較圖</h1>
+        <p class="subtitle">Encoder-Decoder、Autoencoder、VAE 的架構與資料流動方式</p>
+        
+        <!-- Encoder-Decoder -->
+        <div class="architecture-section">
+            <h2>
+                <span style="font-size: 1.5em;">🔄</span>
+                Encoder-Decoder（序列到序列）
+            </h2>
+            <canvas id="encoderDecoderCanvas"></canvas>
+            <div class="description">
+                <strong>流程說明：</strong>
+                <ul>
+                    <li><strong>輸入：</strong>源序列（例如：英文句子）</li>
+                    <li><strong>Encoder：</strong>將源序列壓縮成固定長度的上下文向量 (context vector)</li>
+                    <li><strong>Decoder：</strong>根據上下文向量生成目標序列（例如：中文翻譯）</li>
+                    <li><strong>輸出：</strong>目標序列（與輸入<strong>不同</strong>）</li>
+                </ul>
+                <div class="key-point">
+                    🎯 關鍵特點：輸入和輸出是<strong>不同的資料</strong>，用於序列轉換任務
+                </div>
+            </div>
+        </div>
+        
+        <!-- Autoencoder -->
+        <div class="architecture-section">
+            <h2>
+                <span style="font-size: 1.5em;">🔵</span>
+                Autoencoder（自編碼器）
+            </h2>
+            <canvas id="autoencoderCanvas"></canvas>
+            <div class="description">
+                <strong>流程說明：</strong>
+                <ul>
+                    <li><strong>輸入：</strong>原始資料 X（例如：一張圖片）</li>
+                    <li><strong>Encoder：</strong>將資料壓縮成低維度的<strong>確定性潛在向量 z</strong></li>
+                    <li><strong>Decoder：</strong>從潛在向量 z 重建原始資料</li>
+                    <li><strong>輸出：</strong>重建的資料 X'（盡可能接近輸入 X）</li>
+                </ul>
+                <div class="key-point">
+                    🎯 關鍵特點：輸入和輸出是<strong>相同的資料</strong>，潛在向量是<strong>確定的點</strong>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VAE -->
+        <div class="architecture-section">
+            <h2>
+                <span style="font-size: 1.5em;">🟢</span>
+                VAE（變分自編碼器）
+            </h2>
+            <canvas id="vaeCanvas"></canvas>
+            <div class="description">
+                <strong>流程說明：</strong>
+                <ul>
+                    <li><strong>輸入：</strong>原始資料 X</li>
+                    <li><strong>Encoder：</strong>輸出<strong>機率分佈的參數</strong>（μ 和 σ²）</li>
+                    <li><strong>採樣：</strong>從分佈 N(μ, σ²) 中採樣得到潛在向量 z</li>
+                    <li><strong>Decoder：</strong>從採樣的 z 重建資料</li>
+                    <li><strong>輸出：</strong>重建的資料 X' + <strong>KL 散度損失</strong></li>
+                </ul>
+                <div class="key-point">
+                    🎯 關鍵特點：潛在向量來自<strong>機率分佈</strong>，可以生成新資料，有額外的 KL 散度正則化
+                </div>
+            </div>
+        </div>
+        
+        <!-- 圖例 -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box" style="background: #3498db;"></div>
+                <span>輸入資料</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #e74c3c;"></div>
+                <span>Encoder</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #f39c12;"></div>
+                <span>潛在表示</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #9b59b6;"></div>
+                <span>Decoder</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #2ecc71;"></div>
+                <span>輸出資料</span>
+            </div>
+        </div>
+        
+        <!-- 比較表格 -->
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>特性</th>
+                    <th>Encoder-Decoder</th>
+                    <th>Autoencoder</th>
+                    <th>VAE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>輸入與輸出關係</strong></td>
+                    <td>不同資料</td>
+                    <td>相同資料</td>
+                    <td>相同資料</td>
+                </tr>
+                <tr>
+                    <td><strong>潛在表示性質</strong></td>
+                    <td>上下文向量（資訊傳遞）</td>
+                    <td>確定性向量</td>
+                    <td>機率分佈（μ, σ²）</td>
+                </tr>
+                <tr>
+                    <td><strong>損失函數</strong></td>
+                    <td>交叉熵損失</td>
+                    <td>重建損失（MSE）</td>
+                    <td>重建損失 + KL 散度</td>
+                </tr>
+                <tr>
+                    <td><strong>主要用途</strong></td>
+                    <td>序列轉換（翻譯、摘要）</td>
+                    <td>降維、特徵提取、去噪</td>
+                    <td>生成新資料、特徵學習</td>
+                </tr>
+                <tr>
+                    <td><strong>生成能力</strong></td>
+                    <td>生成目標序列</td>
+                    <td>較弱（只能重建）</td>
+                    <td>強（可生成新樣本）</td>
+                </tr>
+                <tr>
+                    <td><strong>訓練方式</strong></td>
+                    <td>監督學習（需成對資料）</td>
+                    <td>無監督學習</td>
+                    <td>無監督學習</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 等待頁面載入完成
+        function init() {
+            drawEncoderDecoder();
+            drawAutoencoder();
+            drawVAE();
+        }
+        
+        // 繪製 Encoder-Decoder 架構
+        function drawEncoderDecoder() {
+            const canvas = document.getElementById('encoderDecoderCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 設定畫布大小
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 250;
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const boxWidth = 120;
+            const boxHeight = 80;
+            const spacing = 80;
+            
+            // 計算起始位置（置中）
+            const totalWidth = boxWidth * 4 + spacing * 3;
+            const startX = (w - totalWidth) / 2;
+            const centerY = h / 2;
+            
+            // 繪製方框的函數
+            function drawBox(x, y, width, height, color, label, sublabel) {
+                // 陰影
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                
+                // 方框
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, width, height);
+                
+                // 重置陰影
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                // 邊框
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y, width, height);
+                
+                // 文字
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 18px Arial, 微軟正黑體';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, x + width / 2, y + height / 2 - 10);
+                
+                if (sublabel) {
+                    ctx.font = '14px Arial, 微軟正黑體';
+                    ctx.fillText(sublabel, x + width / 2, y + height / 2 + 12);
+                }
+            }
+            
+            // 繪製箭頭的函數
+            function drawArrow(fromX, fromY, toX, toY, label) {
+                ctx.strokeStyle = '#34495e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                
+                // 箭頭
+                const angle = Math.atan2(toY - fromY, toX - fromX);
+                const arrowSize = 12;
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - arrowSize * Math.cos(angle - Math.PI / 6), 
+                          toY - arrowSize * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(toX - arrowSize * Math.cos(angle + Math.PI / 6), 
+                          toY - arrowSize * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fillStyle = '#34495e';
+                ctx.fill();
+                
+                // 標籤
+                if (label) {
+                    ctx.fillStyle = '#34495e';
+                    ctx.font = '14px Arial, 微軟正黑體';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, (fromX + toX) / 2, fromY - 15);
+                }
+            }
+            
+            // 繪製各個組件
+            const x1 = startX;
+            const x2 = startX + boxWidth + spacing;
+            const x3 = startX + (boxWidth + spacing) * 2;
+            const x4 = startX + (boxWidth + spacing) * 3;
+            const y = centerY - boxHeight / 2;
+            
+            drawBox(x1, y, boxWidth, boxHeight, '#3498db', '源序列', '"Hello"');
+            drawBox(x2, y, boxWidth, boxHeight, '#e74c3c', 'Encoder', '編碼');
+            drawBox(x3, y, boxWidth, boxHeight, '#f39c12', 'Context', '上下文向量');
+            drawBox(x4, y + 40, boxWidth, boxHeight, '#9b59b6', 'Decoder', '解碼');
+            
+            // 繪製箭頭
+            drawArrow(x1 + boxWidth, centerY, x2, centerY, '');
+            drawArrow(x2 + boxWidth, centerY, x3, centerY, '');
+            drawArrow(x3 + boxWidth, centerY + 40, x4, centerY + 40, '');
+            
+            // 輸出
+            drawBox(x4 + boxWidth + spacing - 20, y, boxWidth, boxHeight, '#2ecc71', '目標序列', '"你好"');
+            drawArrow(x4 + boxWidth, centerY + 40, x4 + boxWidth + spacing - 20, centerY, '');
+            
+            // 標註
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 16px Arial, 微軟正黑體';
+            ctx.textAlign = 'center';
+            ctx.fillText('輸入 ≠ 輸出', w / 2, h - 20);
+        }
+        
+        // 繪製 Autoencoder 架構
+        function drawAutoencoder() {
+            const canvas = document.getElementById('autoencoderCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 250;
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const boxWidth = 120;
+            const boxHeight = 80;
+            const spacing = 70;
+            
+            const totalWidth = boxWidth * 4 + spacing * 3;
+            const startX = (w - totalWidth) / 2;
+            const centerY = h / 2;
+            
+            function drawBox(x, y, width, height, color, label, sublabel) {
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, width, height);
+                
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y, width, height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 18px Arial, 微軟正黑體';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, x + width / 2, y + height / 2 - 10);
+                
+                if (sublabel) {
+                    ctx.font = '14px Arial, 微軟正黑體';
+                    ctx.fillText(sublabel, x + width / 2, y + height / 2 + 12);
+                }
+            }
+            
+            function drawArrow(fromX, fromY, toX, toY, label) {
+                ctx.strokeStyle = '#34495e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                
+                const angle = Math.atan2(toY - fromY, toX - fromX);
+                const arrowSize = 12;
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - arrowSize * Math.cos(angle - Math.PI / 6), 
+                          toY - arrowSize * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(toX - arrowSize * Math.cos(angle + Math.PI / 6), 
+                          toY - arrowSize * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fillStyle = '#34495e';
+                ctx.fill();
+                
+                if (label) {
+                    ctx.fillStyle = '#34495e';
+                    ctx.font = '14px Arial, 微軟正黑體';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, (fromX + toX) / 2, fromY - 15);
+                }
+            }
+            
+            const x1 = startX;
+            const x2 = startX + boxWidth + spacing;
+            const x3 = startX + (boxWidth + spacing) * 2;
+            const x4 = startX + (boxWidth + spacing) * 3;
+            const y = centerY - boxHeight / 2;
+            
+            drawBox(x1, y, boxWidth, boxHeight, '#3498db', 'X', '輸入資料');
+            drawBox(x2, y, boxWidth, boxHeight, '#e74c3c', 'Encoder', '編碼器');
+            drawBox(x3, y, boxWidth, boxHeight, '#f39c12', 'z', '潛在向量');
+            drawBox(x4, y, boxWidth, boxHeight, '#9b59b6', 'Decoder', '解碼器');
+            
+            drawArrow(x1 + boxWidth, centerY, x2, centerY, '');
+            drawArrow(x2 + boxWidth, centerY, x3, centerY, '');
+            drawArrow(x3 + boxWidth, centerY, x4, centerY, '');
+            
+            drawBox(x4 + boxWidth + spacing - 20, y, boxWidth, boxHeight, '#2ecc71', "X'", '重建資料');
+            drawArrow(x4 + boxWidth, centerY, x4 + boxWidth + spacing - 20, centerY, '');
+            
+            // 損失函數標註
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(x1 + boxWidth / 2, centerY, 50, -Math.PI / 4, -3 * Math.PI / 4, true);
+            ctx.stroke();
+            ctx.arc(x4 + boxWidth + spacing - 20 + boxWidth / 2, centerY, 50, Math.PI / 4, 3 * Math.PI / 4);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 16px Arial, 微軟正黑體';
+            ctx.textAlign = 'center';
+            ctx.fillText('重建損失：||X - X\'||²', w / 2, h - 20);
+        }
+        
+        // 繪製 VAE 架構
+        function drawVAE() {
+            const canvas = document.getElementById('vaeCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 250;
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const boxWidth = 100;
+            const boxHeight = 70;
+            const spacing = 60;
+            
+            const totalWidth = boxWidth * 5 + spacing * 4;
+            const startX = (w - totalWidth) / 2;
+            const centerY = h / 2;
+            
+            function drawBox(x, y, width, height, color, label, sublabel) {
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, width, height);
+                
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y, width, height);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial, 微軟正黑體';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, x + width / 2, y + height / 2 - 8);
+                
+                if (sublabel) {
+                    ctx.font = '12px Arial, 微軟正黑體';
+                    ctx.fillText(sublabel, x + width / 2, y + height / 2 + 10);
+                }
+            }
+            
+            function drawArrow(fromX, fromY, toX, toY, label) {
+                ctx.strokeStyle = '#34495e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+                
+                const angle = Math.atan2(toY - fromY, toX - fromX);
+                const arrowSize = 12;
+                ctx.beginPath();
+                ctx.moveTo(toX, toY);
+                ctx.lineTo(toX - arrowSize * Math.cos(angle - Math.PI / 6), 
+                          toY - arrowSize * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(toX - arrowSize * Math.cos(angle + Math.PI / 6), 
+                          toY - arrowSize * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fillStyle = '#34495e';
+                ctx.fill();
+                
+                if (label) {
+                    ctx.fillStyle = '#34495e';
+                    ctx.font = '12px Arial, 微軟正黑體';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, (fromX + toX) / 2, fromY - 12);
+                }
+            }
+            
+            const x1 = startX;
+            const x2 = startX + boxWidth + spacing;
+            const x3 = startX + (boxWidth + spacing) * 2;
+            const x4 = startX + (boxWidth + spacing) * 3;
+            const x5 = startX + (boxWidth + spacing) * 4;
+            const y = centerY - boxHeight / 2;
+            
+            drawBox(x1, y, boxWidth, boxHeight, '#3498db', 'X', '輸入');
+            drawBox(x2, y, boxWidth, boxHeight, '#e74c3c', 'Encoder', '');
+            drawBox(x3, y, boxWidth, boxHeight, '#f39c12', 'μ, σ²', '分佈參數');
+            drawBox(x4, y, boxWidth, boxHeight, '#f39c12', 'z ~ N', '採樣');
+            drawBox(x5, y, boxWidth, boxHeight, '#9b59b6', 'Decoder', '');
+            
+            drawArrow(x1 + boxWidth, centerY, x2, centerY, '');
+            drawArrow(x2 + boxWidth, centerY, x3, centerY, '');
+            drawArrow(x3 + boxWidth, centerY, x4, centerY, '重參數化');
+            drawArrow(x4 + boxWidth, centerY, x5, centerY, '');
+            
+            drawBox(x5 + boxWidth + spacing - 10, y, boxWidth, boxHeight, '#2ecc71', "X'", '重建');
+            drawArrow(x5 + boxWidth, centerY, x5 + boxWidth + spacing - 10, centerY, '');
+            
+            // KL 散度標註
+            ctx.fillStyle = '#9b59b6';
+            ctx.font = 'bold 14px Arial, 微軟正黑體';
+            ctx.textAlign = 'center';
+            ctx.fillText('KL(q(z|x) || p(z))', x3 + boxWidth / 2, y - 25);
+            
+            ctx.strokeStyle = '#9b59b6';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(x3 + boxWidth / 2 - 30, y - 15);
+            ctx.lineTo(x3 + boxWidth / 2 - 30, y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 16px Arial, 微軟正黑體';
+            ctx.fillText('損失 = 重建損失 + β × KL 散度', w / 2, h - 20);
+        }
+        
+        // 頁面載入完成後初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
