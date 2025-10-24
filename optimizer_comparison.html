@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深度學習優化器完整比較</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab-button {
+            padding: 15px 25px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 10px 10px 0 0;
+            transition: all 0.3s;
+            color: #555;
+        }
+        
+        .tab-button:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .optimizer-card {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .optimizer-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .optimizer-card h3 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #ffd700;
+            color: #333;
+            border-radius: 20px;
+            font-size: 0.5em;
+            font-weight: bold;
+        }
+        
+        .formula-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 2px solid #e0e0e0;
+            overflow-x: auto;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 10px 0 10px 30px;
+            position: relative;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .check {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .cross {
+            color: #dc3545;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .highlight-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .highlight-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .visual-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .visual-card {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .visual-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .visual-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .visual-card .icon {
+            font-size: 3em;
+            margin: 10px 0;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .info-box strong {
+            color: #1976D2;
+        }
+        
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .tab-button {
+                flex: 1 1 calc(50% - 5px);
+            }
+            
+            .comparison-table {
+                font-size: 0.9em;
+            }
+            
+            .visual-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 深度學習優化器完整比較</h1>
+            <p>從 SGD 到 Adam：理解各種優化方法的原理與差異</p>
+        </header>
+        
+        <div class="content">
+            <div class="tabs">
+                <button class="tab-button active" onclick="openTab(event, 'overview')">總覽比較</button>
+                <button class="tab-button" onclick="openTab(event, 'sgd')">SGD</button>
+                <button class="tab-button" onclick="openTab(event, 'momentum')">Momentum</button>
+                <button class="tab-button" onclick="openTab(event, 'nag')">NAG</button>
+                <button class="tab-button" onclick="openTab(event, 'adagrad')">Adagrad</button>
+                <button class="tab-button" onclick="openTab(event, 'rmsprop')">RMSprop</button>
+                <button class="tab-button" onclick="openTab(event, 'adam')">Adam</button>
+                <button class="tab-button" onclick="openTab(event, 'comparison')">詳細對比</button>
+            </div>
+            
+            <!-- 總覽比較 -->
+            <div id="overview" class="tab-content active">
+                <h2 style="color: #667eea; margin-bottom: 20px;">優化器演進史</h2>
+                
+                <div class="visual-comparison">
+                    <div class="visual-card">
+                        <div class="icon">📊</div>
+                        <h4>SGD</h4>
+                        <p>最基礎的方法<br>固定學習率</p>
+                    </div>
+                    <div class="visual-card">
+                        <div class="icon">⚡</div>
+                        <h4>Momentum</h4>
+                        <p>加入慣性<br>加速收斂</p>
+                    </div>
+                    <div class="visual-card">
+                        <div class="icon">🚀</div>
+                        <h4>NAG</h4>
+                        <p>先看再跳<br>更聰明的動量</p>
+                    </div>
+                    <div class="visual-card">
+                        <div class="icon">🎯</div>
+                        <h4>Adagrad</h4>
+                        <p>自適應學習率<br>累積梯度平方</p>
+                    </div>
+                    <div class="visual-card">
+                        <div class="icon">🔄</div>
+                        <h4>RMSprop</h4>
+                        <p>改良 Adagrad<br>指數移動平均</p>
+                    </div>
+                    <div class="visual-card">
+                        <div class="icon">👑</div>
+                        <h4>Adam</h4>
+                        <p>集大成者<br>最常用</p>
+                    </div>
+                </div>
+                
+                <div class="highlight-box">
+                    <h4>💡 關鍵問題：誰會調整學習率？</h4>
+                    <p><strong>答案：Adagrad、RMSprop、Adam</strong></p>
+                    <p>這三個優化器都會根據歷史梯度資訊自動調整每個參數的學習率，而 SGD 和 Momentum 使用固定的學習率。</p>
+                </div>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>優化器</th>
+                            <th>一階動量</th>
+                            <th>二階動量</th>
+                            <th>自適應學習率</th>
+                            <th>適用場景</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>SGD</strong></td>
+                            <td><span class="cross">✗</span></td>
+                            <td><span class="cross">✗</span></td>
+                            <td><span class="cross">✗</span></td>
+                            <td>簡單任務、小模型</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Momentum</strong></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="cross">✗</span></td>
+                            <td><span class="cross">✗</span></td>
+                            <td>需要加速收斂</td>
+                        </tr>
+                        <tr>
+                            <td><strong>NAG</strong></td>
+                            <td><span class="check">✓</span> (預測)</td>
+                            <td><span class="cross">✗</span></td>
+                            <td><span class="cross">✗</span></td>
+                            <td>凸優化、更穩定的加速</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Adagrad</strong></td>
+                            <td><span class="cross">✗</span></td>
+                            <td><span class="check">✓</span> (累加)</td>
+                            <td><span class="check">✓</span></td>
+                            <td>稀疏資料、凸優化</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RMSprop</strong></td>
+                            <td><span class="cross">✗</span></td>
+                            <td><span class="check">✓</span> (EMA)</td>
+                            <td><span class="check">✓</span></td>
+                            <td>非凸優化、RNN</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Adam</strong></td>
+                            <td><span class="check">✓</span></td>
+                            <td><span class="check">✓</span> (EMA)</td>
+                            <td><span class="check">✓</span></td>
+                            <td>深度學習首選</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- SGD -->
+            <div id="sgd" class="tab-content">
+                <div class="optimizer-card">
+                    <h3>📊 SGD（Stochastic Gradient Descent）</h3>
+                    <p><strong>隨機梯度下降</strong> - 最基礎的優化方法</p>
+                    
+                    <div class="formula-box">
+                        <h4>更新公式：</h4>
+                        $$\theta_{t+1} = \theta_t - \eta \cdot g_t$$
+                        <p>其中：</p>
+                        <ul>
+                            <li>\(\theta_t\) 是當前參數</li>
+                            <li>\(\eta\) 是學習率（固定值）</li>
+                            <li>\(g_t\) 是當前梯度</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>特點：</h4>
+                    <ul class="feature-list">
+                        <li>最簡單直觀的梯度下降方法</li>
+                        <li>學習率固定不變</li>
+                        <li>每次更新只使用當前梯度資訊</li>
+                        <li>容易陷入局部最小值</li>
+                        <li>在平坦區域收斂緩慢</li>
+                    </ul>
+                    
+                    <div class="info-box">
+                        <strong>比喻：</strong>像一個人在山坡上走路，每次都按照固定的步伐大小往下走，不管坡度陡峭或平緩。
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Momentum -->
+            <div id="momentum" class="tab-content">
+                <div class="optimizer-card">
+                    <h3>⚡ Momentum（動量法）</h3>
+                    <p><strong>加入慣性的梯度下降</strong> - 加速收斂，平滑更新</p>
+                    
+                    <div class="formula-box">
+                        <h4>更新公式：</h4>
+                        $$v_t = \beta v_{t-1} + g_t$$
+                        $$\theta_{t+1} = \theta_t - \eta \cdot v_t$$
+                        <p>其中：</p>
+                        <ul>
+                            <li>\(v_t\) 是累積的動量（梯度向量）</li>
+                            <li>\(\beta\) 是動量係數，通常為 0.9</li>
+                            <li>\(\eta\) 是學習率（固定值）</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>特點：</h4>
+                    <ul class="feature-list">
+                        <li>累積歷史梯度「方向」，不是大小</li>
+                        <li>學習率仍然固定，不會自動調整</li>
+                        <li>像球滾下山坡，累積慣性加速前進</li>
+                        <li>能穿越小的局部最小值</li>
+                        <li>在相關方向上加速，在震盪方向上減速</li>
+                    </ul>
+                    
+                    <div class="highlight-box">
+                        <h4>⚠️ 關鍵區別</h4>
+                        <p>Momentum <strong>不會調整學習率</strong>！它累積的是梯度方向來決定更新方向，學習率 \(\eta\) 保持固定。</p>
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>比喻：</strong>像開車時的慣性，如果一直往同一個方向前進，速度會越來越快；如果方向經常改變，會相互抵消。
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NAG -->
+            <div id="nag" class="tab-content">
+                <div class="optimizer-card">
+                    <h3>🚀 NAG (Nesterov Accelerated Gradient)</h3>
+                    <p><strong>Nesterov 加速梯度</strong> - Momentum 的改良版，「先看再跳」</p>
+                    
+                    <div class="formula-box">
+                        <h4>更新公式：</h4>
+                        $$v_t = \beta v_{t-1} + g(\theta_t - \beta v_{t-1})$$
+                        $$\theta_{t+1} = \theta_t - \eta \cdot v_t$$
+                        
+                        <p><strong>或等價形式：</strong></p>
+                        $$\tilde{\theta}_t = \theta_t - \beta v_{t-1}$$
+                        $$v_t = \beta v_{t-1} + \nabla f(\tilde{\theta}_t)$$
+                        $$\theta_{t+1} = \theta_t - \eta \cdot v_t$$
+                        
+                        <p>其中：</p>
+                        <ul>
+                            <li>\(v_t\) 是累積的動量</li>
+                            <li>\(\beta\) 是動量係數，通常為 0.9</li>
+                            <li>\(\eta\) 是學習率</li>
+                            <li>\(\tilde{\theta}_t\) 是「前瞻位置」</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>與 Momentum 的關鍵差異：</h4>
+                    <div class="formula-box">
+                        <table style="width: 100%; text-align: center;">
+                            <tr>
+                                <th style="background: #ff9800; color: white; padding: 10px;">Momentum（傳統動量）</th>
+                                <th style="background: #4caf50; color: white; padding: 10px;">NAG（Nesterov 動量）</th>
+                            </tr>
+                            <tr>
+                                <td style="padding: 20px; vertical-align: top;">
+                                    <strong>1. 在當前位置計算梯度</strong><br>
+                                    $$v_t = \beta v_{t-1} + g(\theta_t)$$
+                                    <strong>2. 然後更新</strong><br>
+                                    $$\theta_{t+1} = \theta_t - \eta v_t$$
+                                    <br><br>
+                                    📍 先算梯度，再跳躍<br>
+                                    （容易衝過頭）
+                                </td>
+                                <td style="padding: 20px; vertical-align: top;">
+                                    <strong>1. 先跳到前瞻位置</strong><br>
+                                    $$\tilde{\theta}_t = \theta_t - \beta v_{t-1}$$
+                                    <strong>2. 在前瞻位置計算梯度</strong><br>
+                                    $$v_t = \beta v_{t-1} + g(\tilde{\theta}_t)$$
+                                    <strong>3. 根據前瞻梯度更新</strong><br>
+                                    $$\theta_{t+1} = \theta_t - \eta v_t$$
+                                    <br>
+                                    🔭 先看看前方，再決定怎麼跳<br>
+                                    （更穩定、不容易震盪）
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="highlight-box">
+                        <h4>💡 核心思想：「前瞻性修正」</h4>
+                        <p><strong>Momentum</strong>：「我要往這個方向衝！」（盲目地跟著動量走）</p>
+                        <p><strong>NAG</strong>：「讓我先看看如果往這個方向走會怎樣，再決定！」（在預測位置評估梯度）</p>
+                    </div>
+                    
+                    <h4>視覺化理解：</h4>
+                    <div class="info-box">
+                        <p><strong>想像你在滑雪下山：</strong></p>
+                        <ul style="list-style: none; padding-left: 0;">
+                            <li>🎿 <strong>Momentum</strong>：一直加速往前衝，可能會衝過山谷底部</li>
+                            <li>🔭 <strong>NAG</strong>：快到山谷底部前，會「提前看一下」前方的坡度，及時調整速度，更精準地停在最低點</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>數學直覺：</h4>
+                    <div class="formula-box">
+                        <p>假設我們在接近最小值點，當前動量 \(v_{t-1}\) 很大（因為一直在加速）：</p>
+                        <br>
+                        <p><strong>Momentum 做法：</strong></p>
+                        <ul>
+                            <li>在當前位置 \(\theta_t\) 計算梯度 → 梯度可能還指向前方</li>
+                            <li>動量 \(v_t\) 繼續累積 → 繼續加速</li>
+                            <li>結果：衝過頭！需要來回震盪</li>
+                        </ul>
+                        <br>
+                        <p><strong>NAG 做法：</strong></p>
+                        <ul>
+                            <li>先跳到 \(\tilde{\theta}_t = \theta_t - \beta v_{t-1}\)（預測位置）</li>
+                            <li>在預測位置計算梯度 → 可能已經發現「要過頭了」（梯度變號或減小）</li>
+                            <li>根據這個「警告信號」調整動量 → 提前減速</li>
+                            <li>結果：更穩定、更快收斂</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>特點：</h4>
+                    <ul class="feature-list">
+                        <li>在「預測位置」計算梯度，具有前瞻性</li>
+                        <li>減少過沖（overshoot）問題</li>
+                        <li>收斂速度通常比傳統 Momentum 更快</li>
+                        <li>在凸優化問題上有理論保證的更好收斂率</li>
+                        <li>學習率仍然固定，不會自動調整</li>
+                        <li>計算開銷幾乎與 Momentum 相同</li>
+                    </ul>
+                    
+                    <div class="highlight-box">
+                        <h4>⚠️ 注意</h4>
+                        <p>NAG 雖然比 Momentum 更好，但它<strong>仍然不會調整學習率</strong>！它只是改進了動量的使用方式。</p>
+                        <p>如果題目問「誰會調整學習率」，NAG <strong>不是</strong>答案（正確答案是 Adagrad、RMSprop、Adam）。</p>
+                    </div>
+                    
+                    <h4>優點：</h4>
+                    <ul class="feature-list">
+                        <li>✅ 比 Momentum 更穩定，減少震盪</li>
+                        <li>✅ 收斂速度更快</li>
+                        <li>✅ 特別適合凸優化問題</li>
+                        <li>✅ 對學習率的選擇更不敏感</li>
+                    </ul>
+                    
+                    <h4>缺點：</h4>
+                    <ul class="feature-list">
+                        <li>❌ 仍然使用固定學習率</li>
+                        <li>❌ 在深度學習中，Adam 等自適應方法通常更好</li>
+                        <li>❌ 實作上需要額外計算前瞻位置</li>
+                    </ul>
+                    
+                    <div class="info-box">
+                        <strong>實務建議：</strong>
+                        <ul>
+                            <li>如果使用 SGD 系列，NAG 通常優於傳統 Momentum</li>
+                            <li>但對於大多數深度學習任務，Adam 仍是首選</li>
+                            <li>NAG 在某些凸優化問題（如邏輯迴歸）上表現優異</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Adagrad -->
+            <div id="adagrad" class="tab-content">
+                <div class="optimizer-card">
+                    <h3>🎯 Adagrad <span class="badge">題目正解</span></h3>
+                    <p><strong>自適應梯度演算法</strong> - 第一個會調整學習率的優化器</p>
+                    
+                    <div class="formula-box">
+                        <h4>更新公式：</h4>
+                        $$G_t = G_{t-1} + g_t^2$$
+                        $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t + \epsilon}} \cdot g_t$$
+                        <p>其中：</p>
+                        <ul>
+                            <li>\(G_t\) 是累積的梯度平方和</li>
+                            <li>\(\eta\) 是初始學習率</li>
+                            <li>\(\epsilon\) 是防止除零的小常數（如 \(10^{-8}\)）</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>特點：</h4>
+                    <ul class="feature-list">
+                        <li>累積歷史梯度「平方」（大小資訊）</li>
+                        <li>根據累積的梯度平方自動調整學習率</li>
+                        <li>頻繁更新的參數 → 學習率降低</li>
+                        <li>稀疏更新的參數 → 學習率保持較大</li>
+                        <li>適合處理稀疏資料和特徵</li>
+                    </ul>
+                    
+                    <div class="highlight-box">
+                        <h4>✅ 這就是題目的答案！</h4>
+                        <p>Adagrad 會<strong>累積每個參數的歷史梯度大小（平方和）</strong>，並用它來<strong>調整學習率</strong>：</p>
+                        <p>實際學習率 = \(\frac{\eta}{\sqrt{G_t + \epsilon}}\)</p>
+                    </div>
+                    
+                    <h4>問題：</h4>
+                    <div class="info-box">
+                        <strong>⚠️ 學習率單調遞減：</strong>因為 \(G_t\) 會無限累積增長，導致學習率越來越小，最後幾乎停止更新。這在長時間訓練時會造成問題。
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RMSprop -->
+            <div id="rmsprop" class="tab-content">
+                <div class="optimizer-card">
+                    <h3>🔄 RMSprop</h3>
+                    <p><strong>Adagrad 的改良版</strong> - 解決學習率過度衰減問題</p>
+                    
+                    <div class="formula-box">
+                        <h4>更新公式：</h4>
+                        $$E[g^2]_t = \beta \cdot E[g^2]_{t-1} + (1-\beta) \cdot g_t^2$$
+                        $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{E[g^2]_t + \epsilon}} \cdot g_t$$
+                        <p>其中：</p>
+                        <ul>
+                            <li>\(E[g^2]_t\) 是梯度平方的指數移動平均（EMA）</li>
+                            <li>\(\beta\) 是衰減率，通常為 0.9</li>
+                            <li>\(\eta\) 是初始學習率</li>
+                        </ul>
+                    </div>
+                    
+                    <h4>與 Adagrad 的關鍵差異：</h4>
+                    <div class="formula-box">
+                        <table style="width: 100%; text-align: center;">
+                            <tr>
+                                <th style="background: #ff6b6b; color: white; padding: 10px;">Adagrad</th>
+                                <th style="background: #51cf66; color: white; padding: 10px;">RMSprop</th>
+                            </tr>
+                            <tr>
+                                <td style="padding: 15px;">
+                                    $$G_t = G_{t-1} + g_t^2$$
+                                    累積所有歷史
+                                </td>
+                                <td style="padding: 15px;">
+                                    $$E[g^2]_t = \beta E[g^2]_{t-1} + (1-\beta)g_t^2$$
+                                    只重視近期
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <h4>特點：</h4>
+                    <ul class="feature-list">
+                        <li>使用指數移動平均，只保留近期梯度資訊</li>
+                        <li>舊的梯度影響會逐漸淡化</li>
+                        <li>學習率可以上升也可以下降，適應變化</li>
+                        <li>解決了 Adagrad 學習率過早停止的問題</li>
+                        <li>特別適合 RNN 等非凸優化問題</li>
+                    </ul>
+                    
+                    <div class="info-box">
+                        <strong>比喻：</strong>Adagrad 像記帳本，記錄所有消費總和；RMSprop 像滑動平均消費，只關注最近的花費習慣。
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Adam -->
+            <div id="adam" class="tab-content">
+                <div class="optimizer-card">
+                    <h3>👑 Adam <span class="badge">最推薦</span></h3>
+                    <p><strong>Adaptive Moment Estimation</strong> - 結合 Momentum 與 RMSprop 的優點</p>
+                    
+                    <div class="formula-box">
+                        <h4>完整更新公式：</h4>
+                        <p><strong>1. 計算一階動量（梯度的移動平均）：</strong></p>
+                        $$m_t = \beta_1 \cdot m_{t-1} + (1-\beta_1) \cdot g_t$$
+                        
+                        <p><strong>2. 計算二階動量（梯度平方的移動平均）：</strong></p>
+                        $$v_t = \beta_2 \cdot v_{t-1} + (1-\beta_2) \cdot g_t^2$$
+                        
+                        <p><strong>3. 偏差修正：</strong></p>
+                        $$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}$$
+                        $$\hat{v}_t = \frac{v_t}{1 - \beta_2^t}$$
+                        
+                        <p><strong>4. 更新參數：</strong></p>
+                        $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \cdot \hat{m}_t$$
+                    </div>
+                    
+                    <h4>超參數預設值：</h4>
+                    <ul class="feature-list">
+                        <li>\(\beta_1 = 0.9\)（一階動量衰減率）</li>
+                        <li>\(\beta_2 = 0.999\)（二階動量衰減率）</li>
+                        <li>\(\eta = 0.001\)（學習率）</li>
+                        <li>\(\epsilon = 10^{-8}\)（數值穩定項）</li>
+                    </ul>
+                    
+                    <div class="highlight-box">
+                        <h4>💡 Adam = Momentum + RMSprop</h4>
+                        <table style="width: 100%; margin-top: 10px;">
+                            <tr>
+                                <td style="width: 33%; padding: 10px; background: #e3f2fd; border-radius: 5px; margin: 5px;">
+                                    <strong>Momentum 部分</strong><br>
+                                    \(m_t\)：累積方向<br>
+                                    加速收斂
+                                </td>
+                                <td style="width: 33%; padding: 10px; background: #fff3e0; border-radius: 5px; margin: 5px;">
+                                    <strong>RMSprop 部分</strong><br>
+                                    \(v_t\)：累積大小<br>
+                                    自適應學習率
+                                </td>
+                                <td style="width: 33%; padding: 10px; background: #f3e5f5; border-radius: 5px; margin: 5px;">
+                                    <strong>Adam 獨有</strong><br>
+                                    偏差修正<br>
+                                    修正初期偏差
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <h4>為什麼需要偏差修正？</h4>
+                    <div class="info-box">
+                        <p>因為 \(m_0 = 0, v_0 = 0\)，在訓練初期會嚴重低估真實的梯度統計量。</p>
+                        <p><strong>例如：</strong>當 \(\beta_1 = 0.9, g_1 = 1\) 時</p>
+                        <ul>
+                            <li>未修正：\(m_1 = 0.1\)（被低估）</li>
+                            <li>修正後：\(\hat{m}_1 = \frac{0.1}{1-0.9^1} = 1\)（恢復正確值）</li>
+                        </ul>
+                        <p>隨著訓練進行，\(\beta_1^t \to 0\)，修正效果自然消失。</p>
+                    </div>
+                    
+                    <h4>優點：</h4>
+                    <ul class="feature-list">
+                        <li>結合方向累積和自適應學習率的優點</li>
+                        <li>對超參數不敏感，預設值通常就很好</li>
+                        <li>適用於大多數深度學習任務</li>
+                        <li>計算效率高，記憶體需求小</li>
+                        <li>目前最常用的優化器</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- 詳細對比 -->
+            <div id="comparison" class="tab-content">
+                <h2 style="color: #667eea; margin-bottom: 20px;">完整對比分析</h2>
+                
+                <div class="optimizer-card">
+                    <h3>📊 核心差異總結</h3>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>優化器</th>
+                                <th>累積什麼</th>
+                                <th>學習率</th>
+                                <th>主要作用</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>SGD</strong></td>
+                                <td>不累積</td>
+                                <td>固定 \(\eta\)</td>
+                                <td>基礎梯度下降</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Momentum</strong></td>
+                                <td>梯度向量 \(g_t\)</td>
+                                <td>固定 \(\eta\)</td>
+                                <td>加速收斂、平滑路徑</td>
+                            </tr>
+                            <tr>
+                                <td><strong>NAG</strong></td>
+                                <td>梯度向量 \(g_t\)（前瞻）</td>
+                                <td>固定 \(\eta\)</td>
+                                <td>加速+減少過沖</td>
+                            </tr>
+                            <tr style="background: #fff9c4;">
+                                <td><strong>Adagrad</strong></td>
+                                <td>梯度平方 \(g_t^2\)（累加）</td>
+                                <td>自適應 \(\frac{\eta}{\sqrt{G_t}}\)</td>
+                                <td><strong>調整學習率</strong></td>
+                            </tr>
+                            <tr style="background: #fff9c4;">
+                                <td><strong>RMSprop</strong></td>
+                                <td>梯度平方 \(g_t^2\)（EMA）</td>
+                                <td>自適應 \(\frac{\eta}{\sqrt{E[g^2]_t}}\)</td>
+                                <td><strong>調整學習率</strong></td>
+                            </tr>
+                            <tr style="background: #c8e6c9;">
+                                <td><strong>Adam</strong></td>
+                                <td>\(g_t\) + \(g_t^2\)（EMA）</td>
+                                <td>自適應 \(\frac{\eta}{\sqrt{\hat{v}_t}}\)</td>
+                                <td><strong>方向+學習率</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="optimizer-card">
+                    <h3>🎯 應用場景建議</h3>
+                    <div class="visual-comparison">
+                        <div class="visual-card">
+                            <h4>SGD</h4>
+                            <p>✅ 小型網路</p>
+                            <p>✅ 凸優化問題</p>
+                            <p>❌ 大型深度網路</p>
+                        </div>
+                        <div class="visual-card">
+                            <h4>Momentum</h4>
+                            <p>✅ 需要加速收斂</p>
+                            <p>✅ 配合 SGD 使用</p>
+                            <p>❌ 需要自適應學習率</p>
+                        </div>
+                        <div class="visual-card">
+                            <h4>NAG</h4>
+                            <p>✅ 凸優化問題</p>
+                            <p>✅ 比 Momentum 更穩定</p>
+                            <p>❌ 深度學習不如 Adam</p>
+                        </div>
+                        <div class="visual-card">
+                            <h4>Adagrad</h4>
+                            <p>✅ 稀疏資料</p>
+                            <p>✅ NLP 任務</p>
+                            <p>❌ 長時間訓練</p>
+                        </div>
+                        <div class="visual-card">
+                            <h4>RMSprop</h4>
+                            <p>✅ RNN / LSTM</p>
+                            <p>✅ 非凸優化</p>
+                            <p>✅ 線上學習</p>
+                        </div>
+                        <div class="visual-card" style="border-color: #4CAF50; border-width: 3px;">
+                            <h4>Adam ⭐</h4>
+                            <p>✅ 深度學習首選</p>
+                            <p>✅ 大多數任務</p>
+                            <p>✅ 對超參數不敏感</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="optimizer-card">
+                    <h3>💭 記憶技巧</h3>
+                    <div class="highlight-box">
+                        <h4>如何記住誰會調整學習率？</h4>
+                        <p><strong>口訣：</strong>「阿達（Adagrad）老師用 RM（RMSprop）教亞當（Adam）自己調整學習速度」</p>
+                        <p>只有這三個優化器會<strong>自適應調整學習率</strong>！</p>
+                        <p style="margin-top: 10px; color: #d32f2f;"><strong>⚠️ NAG 和 Momentum 都不會調整學習率！</strong>它們只是改進了動量的使用方式。</p>
+                    </div>
+                    
+                    <div class="info-box">
+                        <h4>Momentum vs NAG vs Adagrad 的直覺區別</h4>
+                        <ul>
+                            <li><strong>Momentum</strong>：「我要記住往哪裡走，然後一直加速！」（累積方向，可能衝過頭）</li>
+                            <li><strong>NAG</strong>：「讓我先看看前方再決定怎麼走！」（在預測位置評估，更穩定）</li>
+                            <li><strong>Adagrad</strong>：「我要根據走了多少次自動調整步伐大小！」（累積梯度平方，自適應學習率）</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="highlight-box" style="background: #e3f2fd; border-left-color: #2196f3;">
+                        <h4>🎯 快速判斷技巧</h4>
+                        <p><strong>問：誰會調整學習率？</strong></p>
+                        <ul>
+                            <li>✅ 有累積「梯度平方」的 → 會調整學習率（Adagrad、RMSprop、Adam）</li>
+                            <li>❌ 只累積「梯度向量」的 → 不會調整學習率（Momentum、NAG）</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>深度學習優化器完整指南 | 使用 MathJax 渲染數學公式</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">© 2025 - 為了更好地理解機器學習優化方法</p>
+        </footer>
+    </div>
+    
+    <script>
+        function openTab(evt, tabName) {
+            // 隱藏所有 tab content
+            var tabContents = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // 移除所有 tab button 的 active class
+            var tabButtons = document.getElementsByClassName("tab-button");
+            for (var i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+            
+            // 顯示當前 tab 並設置 button 為 active
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+            
+            // 重新渲染 MathJax
+            MathJax.typesetPromise();
+        }
+        
+        // 頁面載入時渲染數學公式
+        window.addEventListener('load', function() {
+            MathJax.typesetPromise();
+        });
+    </script>
+</body>
+</html>
