@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機器學習視覺化教學 | IPAS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .intro {
+            padding: 50px 40px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .intro h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .intro p {
+            font-size: 1.1em;
+            color: #495057;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .content {
+            padding: 50px 40px;
+        }
+
+        .topics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .topic-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .topic-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .topic-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .topic-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .topic-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .topic-card h3 {
+            color: #2d3748;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .topic-card p {
+            color: #718096;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .topic-tag {
+            display: inline-block;
+            background: #e9ecef;
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 15px;
+            font-weight: 500;
+        }
+
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            font-size: 0.95em;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            header p {
+                font-size: 1.1em;
+            }
+
+            .topics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .content, .intro, header {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 機器學習視覺化教學</h1>
+            <p>深入淺出地理解機器學習與深度學習的核心概念，透過互動式視覺化圖表讓學習更直觀</p>
+        </header>
+
+        <div class="intro">
+            <h2>關於本網站</h2>
+            <p>本網站提供一系列機器學習 (Machine Learning) 和深度學習 (Deep Learning) 的視覺化教學內容，涵蓋神經網路架構、生成模型、評估指標等重要主題。每個主題都搭配清晰的流程圖和比較表格，幫助你快速掌握關鍵概念。</p>
+        </div>
+
+        <div class="content">
+            <div class="topics-grid">
+                <a href="architecture_comparison.html" class="topic-card">
+                    <span class="topic-icon">🏗️</span>
+                    <h3>三種架構流程比較圖</h3>
+                    <p>深入比較 Encoder-Decoder、Autoencoder 和 VAE（變分自編碼器）三種架構的資料流動方式、潛在表示性質與應用場景。理解序列轉換、特徵提取與生成模型的差異。</p>
+                    <span class="topic-tag">神經網路架構</span>
+                </a>
+
+                <a href="autoencoder_vs_vae_fixed.html" class="topic-card">
+                    <span class="topic-icon">🔄</span>
+                    <h3>Autoencoder vs VAE 深度解析</h3>
+                    <p>詳細對比傳統自編碼器與變分自編碼器的運作原理、數學基礎和實際應用。探討確定性編碼與機率編碼的本質差異，以及 KL 散度在生成模型中的角色。</p>
+                    <span class="topic-tag">生成模型</span>
+                </a>
+
+                <a href="beta_distribution.html" class="topic-card">
+                    <span class="topic-icon">📊</span>
+                    <h3>Beta 分佈視覺化</h3>
+                    <p>互動式探索 Beta 分佈在不同參數 α 和 β 下的機率密度函數形狀變化。理解這個靈活的機率分佈如何應用於貝氏統計 (Bayesian Statistics) 和機器學習中的不確定性建模。</p>
+                    <span class="topic-tag">機率統計</span>
+                </a>
+
+                <a href="isolation_forest_step_by_step.html" class="topic-card">
+                    <span class="topic-icon">🌲</span>
+                    <h3>Isolation Forest 逐步解說</h3>
+                    <p>視覺化展示 Isolation Forest（孤立森林）演算法的異常偵測 (Anomaly Detection) 過程。透過隨機切割樹的建構步驟，理解如何識別資料中的離群值與異常模式。</p>
+                    <span class="topic-tag">異常偵測</span>
+                </a>
+
+                <a href="roc_curve_explanation.html" class="topic-card">
+                    <span class="topic-icon">📈</span>
+                    <h3>ROC 曲線完整解說</h3>
+                    <p>深入理解 ROC 曲線（接收者操作特徵曲線）與 AUC（曲線下面積）指標。學習如何評估分類模型的性能，掌握真陽性率、假陽性率和最佳閾值選擇的技巧。</p>
+                    <span class="topic-tag">模型評估</span>
+                </a>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2025 機器學習視覺化教學 | 由 <a href="https://github.com/garfieldhuang" target="_blank">Garfield Huang</a> 製作</p>
+            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">適用於 IPAS 證照考試準備與機器學習概念學習</p>
+        </footer>
+    </div>
+</body>
+</html>
